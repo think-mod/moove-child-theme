@@ -65,7 +65,29 @@ function theme_moovechild_get_extra_scss($theme) {
     return theme_moove_get_extra_scss($theme);                         
 }
 
+/**
+ * Serves any files associated with the theme settings.
+ *
+ * @param stdClass $course
+ * @param context $context
+ * @param string $filearea
+ * @param array $args
+ * @param bool $forcedownload
+ * @param array $options
+ * @return mixed
+ */
+function theme_moovechild_pluginfile($course, $context, $filearea, $args, $forcedownload, array $options = array()) {
+    $theme = theme_config::load('moovechild');
+
+    if ($context->contextlevel == CONTEXT_SYSTEM and $filearea === 'courseSVG') {
+        return $theme->setting_file_serve('courseSVG', $args, $forcedownload, $options);
+    }
+
+    send_file_not_found();
+}
+
 function theme_moovechild_page_init(moodle_page $page) {
+    //echo phpinfo();
 
     //need to check which course we are in
     global $COURSE;
@@ -91,6 +113,15 @@ function theme_moovechild_page_init(moodle_page $page) {
     }
 
     echo '<style>
+        tm-watermark {
+            background-image: url(data: image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 640 512\'><path d=\'M149.333 216v80c0 13.255-10.745 24-24 24H24c-13.255 0-24-10.745-24-24v-80c0-13.255 10.745-24 24-24h101.333c13.255 0 24 10.745 24 24zM0 376v80c0 13.255 10.745 24 24 24h101.333c13.255 0 24-10.745 24-24v-80c0-13.255-10.745-24-24-24H24c-13.255 0-24 10.745-24 24zM125.333 32H24C10.745 32 0 42.745 0 56v80c0 13.255 10.745 24 24 24h101.333c13.255 0 24-10.745 24-24V56c0-13.255-10.745-24-24-24zm80 448H488c13.255 0 24-10.745 24-24v-80c0-13.255-10.745-24-24-24H205.333c-13.255 0-24 10.745-24 24v80c0 13.255 10.745 24 24 24zm-24-424v80c0 13.255 10.745 24 24 24H488c13.255 0 24-10.745 24-24V56c0-13.255-10.745-24-24-24H205.333c-13.255 0-24 10.745-24 24zm24 264H488c13.255 0 24-10.745 24-24v-80c0-13.255-10.745-24-24-24H205.333c-13.255 0-24 10.745-24 24v80c0 13.255 10.745 24 24 24z\'/></svg>);
+            background-size: contain;
+            background-repeat: no-repeat;
+            height: 100px;
+            width: 120px;
+            opacity: 0.1;
+            margin: auto;
+        }
         .test-color {
             color: ' . $courseThemeColor . '99;
         }
@@ -168,7 +199,16 @@ function theme_moovechild_page_init(moodle_page $page) {
             background-color:' . $courseThemeColor . ' !important;
         }
 
-        .tm-watermark {
+        
+
+        #page-header .mr-auto {
+            margin-left: auto !important;
+        }
+
+    </style>';
+
+    /*
+    .tm-watermark {
             background-image: url("' . $bgSVG . '");  
             background-size: contain; 
             background-repeat: no-repeat; 
@@ -177,17 +217,106 @@ function theme_moovechild_page_init(moodle_page $page) {
             opacity: 0.1; 
             margin: auto;
         }
+    */
 
-        #page-header .mr-auto {
-            margin-left: auto !important;
-        }
+    
+}
 
-    </style>';
+function theme_moovechild_before_footer() {
+    // echo the script for setting the svg
 
-    /*global $CFG;
+    //need to check which course we are in
+    global $COURSE;
+    global $CFG;
+    $course_id = $COURSE->id;
 
-    require_once($CFG->dirroot.'/course/lib.php');
+    global $CFG;
 
-    $courseColorSetting = new admin_settingpage('coursecolorsettings', new lang_string('coursecolorsettings'));
-    $ADMIN->add('courses', $temp);*/
+    $theme = theme_config::load('moovechild');
+
+
+    if($course_id > 1) {
+        $context = context_course::instance($course_id);
+        $courseSelector = 'courseSVG'.$course_id;
+        //$courseSVG = get_config('theme_moovechild', $courseSelector);
+        /**
+ * Serves any files associated with the theme settings.
+ *
+ * @param stdClass $course
+ * @param context $context
+ * @param string $filearea
+ * @param array $args
+ * @param bool $forcedownload
+ * @param array $options
+ * @return mixed
+ */
+        //$courseSVG = theme_moovechild_pluginfile($COURSE, $context, 'courseSVG' . $course_id, [], 'false', []);
+    } else {
+        $courseSVG = false;
+    }
+
+    //$url = moodle_url::make_pluginfile_url($file->get_contextid(), $file->get_component(), $file->get_filearea(), $file->get_itemid(), $file->get_filepath(), $file->get_filename(), false);
+
+
+    if($courseSVG) {
+        print_r($courseSVG);
+        echo '
+            <script> 
+                // Put link from breadcrumb on title.
+                let courseTitle = document.getElementsByClassName("page-header-headings")[0].firstChild
+                let linkToCourse
+                let tempLink
+
+                console.log(courseTitle, linkToCourse, tempLink);
+                
+                if (courseTitle) {
+                let breadcrumbs = document.getElementsByClassName("breadcrumb-item")
+                for (let i = 0; i < breadcrumbs.length; i++) {
+                    tempLink = breadcrumbs[i].firstChild.href
+                    if(tempLink) {
+                    if(tempLink.includes("/course/view.php")) {
+                        linkToCourse = tempLink
+                    }
+                    if(tempLink.includes("#section")) {
+                        linkToCourse = tempLink
+                    }
+                    }
+                }
+                
+                if (linkToCourse) {
+                    let linkText = courseTitle.innerText
+                    courseTitle.innerText = ""
+                    courseTitle.innerHTML = \'<a href="\' + linkToCourse + \'">\' + linkText + \'</a>\'
+                }
+                }
+                // Create a SVG Watermark in the background.
+                let watermark = document.createElement(\'div\');
+                watermark.classList.add("tm-watermark");
+                document.getElementById("page-header").firstElementChild.insertBefore(watermark, document.getElementById("page-header").firstElementChild.firstElementChild);
+            </script>
+            <style>
+                .tm-watermark {
+                    background-image: url("'. $CFG->wwwroot . $courseSVG . '");  
+                    background-size: contain; 
+                    background-repeat: no-repeat; 
+                    height: 100px; 
+                    width: 120px; 
+                    opacity: 0.1; 
+                    margin: auto;
+                }
+            </style>
+        ';
+    }
+}
+
+// Add to navigation block
+function theme_moovechild_extend_settings_navigation($navigation, $context) {
+    global $CFG;
+    $test = 'this is a test';
+    print_r($test);
+    $parent = $navigation->find('courseadmin', navigation_node::TYPE_COURSE);
+    if($parent == null) {
+        return;
+    }
+    $parent->add('Set course color 2', '/local/message/course_color.php', navigation_node::TYPE_SETTING);
 }

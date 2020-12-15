@@ -176,9 +176,29 @@ if ($ADMIN->fulltree) {
         $page->add($setting);
     }
 
+    /*$camelCaseName = str_replace(' ', '', ucwords(str_replace('-', '', $course->fullname)));
+    $name = 'theme_moovechild/courseSVG'.$course->id;
+    $title = $course->fullname.' Custom SVG';
+    $description = $course->fullname.' Custom SVG for course home page';
+    $opts = array('accepted_types' => array('.png', '.jpg', '.gif', '.webp', '.tiff', '.svg'), 'maxfiles' => 1);
+    $setting = new admin_setting_configstoredfile($name, $title, $description, $title, 0, $opts);
+    $setting->set_updatedcallback('theme_reset_all_caches');
+    $page->add($setting);*/
+
+    $camelCaseName = str_replace(' ', '', ucwords(str_replace('-', '', 'This is a test')));
+    $name = 'theme_moovechild/courseSVG2';
+    $title = 'Test Custom SVG';
+    $description = 'Test Custom SVG for course home page';
+    $opts = array('accepted_types' => array('.png', '.jpg', '.gif', '.webp', '.tiff', '.svg'), 'maxfiles' => 1);
+    $setting = new admin_setting_configstoredfile($name, $title, $description, $title, 0, $opts);
+    $setting->set_updatedcallback('theme_reset_all_caches');
+    $page->add($setting);
+
     
     // Must add the page after definiting all the settings!
     $settings->add($page);
+
+
 
     /*
     * ----------------------
