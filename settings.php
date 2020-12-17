@@ -161,6 +161,17 @@ if ($ADMIN->fulltree) {
     */
     $page = new admin_settingpage('theme_moovechild_subtheme', get_string('coursethemesettingstitle', 'theme_moovechild'));
 
+    // We use variables for readability.
+    $name = 'theme_moovechild/defaultbackgroundimage';
+    $title = 'Test Background Image';
+    $description = 'This is only a test';
+    // This creates the new setting.
+    $setting = new admin_setting_configstoredfile($name, $title, $description, 'defaultbackgroundimage');
+    // This function will copy the image into the data_root location it can be served from.
+    $setting->set_updatedcallback('theme_moovechild_update_settings_images');
+    // We always have to add the setting to a page for it to have any effect.
+    $page->add($setting);
+
     // course list
     global $DB;
 
@@ -174,25 +185,28 @@ if ($ADMIN->fulltree) {
         $setting = new admin_setting_configcolourpicker($name, $title, $description, '');
         $setting->set_updatedcallback('theme_reset_all_caches');
         $page->add($setting);
+
+        /*$camelCaseName = str_replace(' ', '', ucwords(str_replace('-', '', $course->fullname)));
+        $name = 'theme_moovechild/courseSVG'.$course->id;
+        $title = $course->fullname.' Custom SVG';
+        $description = $course->fullname.' Custom SVG for course home page';
+        $opts = array('accepted_types' => array('.png', '.jpg', '.gif', '.webp', '.tiff', '.svg'), 'maxfiles' => 1);
+        $setting = new admin_setting_configstoredfile($name, $title, $description, $title, 0, $opts);
+        $setting->set_updatedcallback('theme_moovechild_update_settings_images');
+        $page->add($setting);
+
+        // We use variables for readability. 
+        $camelCaseName = str_replace(' ', '', ucwords(str_replace('-', '', $course->fullname)));                                                                                           
+        $name = 'theme_moovechild/courseSVG'.$course->id;
+        $title = $course->fullname.' Custom SVG';                                                                     
+        $description = $course->fullname.' Custom SVG for course home page';
+        // This creates the new setting.                                                                                                
+        $setting = new admin_setting_configstoredfile($name, $title, $description, 'courseSVG'.$course->id);                             
+        // This function will copy the image into the data_root location it can be served from.                                         
+        $setting->set_updatedcallback('theme_moovechild_update_settings_images');                                                            
+        // We always have to add the setting to a page for it to have any effect.                                                       
+        $page->add($setting);*/
     }
-
-    /*$camelCaseName = str_replace(' ', '', ucwords(str_replace('-', '', $course->fullname)));
-    $name = 'theme_moovechild/courseSVG'.$course->id;
-    $title = $course->fullname.' Custom SVG';
-    $description = $course->fullname.' Custom SVG for course home page';
-    $opts = array('accepted_types' => array('.png', '.jpg', '.gif', '.webp', '.tiff', '.svg'), 'maxfiles' => 1);
-    $setting = new admin_setting_configstoredfile($name, $title, $description, $title, 0, $opts);
-    $setting->set_updatedcallback('theme_reset_all_caches');
-    $page->add($setting);*/
-
-    $camelCaseName = str_replace(' ', '', ucwords(str_replace('-', '', 'This is a test')));
-    $name = 'theme_moovechild/courseSVG2';
-    $title = 'Test Custom SVG';
-    $description = 'Test Custom SVG for course home page';
-    $opts = array('accepted_types' => array('.png', '.jpg', '.gif', '.webp', '.tiff', '.svg'), 'maxfiles' => 1);
-    $setting = new admin_setting_configstoredfile($name, $title, $description, $title, 0, $opts);
-    $setting->set_updatedcallback('theme_reset_all_caches');
-    $page->add($setting);
 
     
     // Must add the page after definiting all the settings!

@@ -65,29 +65,7 @@ function theme_moovechild_get_extra_scss($theme) {
     return theme_moove_get_extra_scss($theme);                         
 }
 
-/**
- * Serves any files associated with the theme settings.
- *
- * @param stdClass $course
- * @param context $context
- * @param string $filearea
- * @param array $args
- * @param bool $forcedownload
- * @param array $options
- * @return mixed
- */
-function theme_moovechild_pluginfile($course, $context, $filearea, $args, $forcedownload, array $options = array()) {
-    $theme = theme_config::load('moovechild');
-
-    if ($context->contextlevel == CONTEXT_SYSTEM and $filearea === 'courseSVG') {
-        return $theme->setting_file_serve('courseSVG', $args, $forcedownload, $options);
-    }
-
-    send_file_not_found();
-}
-
 function theme_moovechild_page_init(moodle_page $page) {
-    //echo phpinfo();
 
     //need to check which course we are in
     global $COURSE;
@@ -238,18 +216,7 @@ function theme_moovechild_before_footer() {
     if($course_id > 1) {
         $context = context_course::instance($course_id);
         $courseSelector = 'courseSVG'.$course_id;
-        //$courseSVG = get_config('theme_moovechild', $courseSelector);
-        /**
- * Serves any files associated with the theme settings.
- *
- * @param stdClass $course
- * @param context $context
- * @param string $filearea
- * @param array $args
- * @param bool $forcedownload
- * @param array $options
- * @return mixed
- */
+        $courseSVG = get_config('theme_moovechild', $courseSelector);
         //$courseSVG = theme_moovechild_pluginfile($COURSE, $context, 'courseSVG' . $course_id, [], 'false', []);
     } else {
         $courseSVG = false;
@@ -309,14 +276,110 @@ function theme_moovechild_before_footer() {
     }
 }
 
-// Add to navigation block
-function theme_moovechild_extend_settings_navigation($navigation, $context) {
+function theme_moovechild_update_settings_images($settingname) {
     global $CFG;
-    $test = 'this is a test';
-    print_r($test);
-    $parent = $navigation->find('courseadmin', navigation_node::TYPE_COURSE);
-    if($parent == null) {
-        return;
+
+    // The setting name that was updated comes as a string like 's_theme_photo_loginbackgroundimage'.
+    // We split it on '_' characters.
+    $parts = explode('_', $settingname);
+    // And get the last one to get the setting name..
+    $settingname = end($parts);
+
+    // Admin settings are stored in system context.
+    $syscontext = context_system::instance();
+    // This is the component name the setting is stored in.
+    $component = 'theme_moovechild';
+
+
+    // This is the value of the admin setting which is the filename of the uploaded file.
+    $filename = get_config($component, $settingname);
+    // We extract the file extension because we want to preserve it.
+    $extension = substr($filename, strrpos($filename, '.') + 1);
+
+    // This is the path in the moodle internal file system.
+    $fullpath = "/{$syscontext->id}/{$component}/{$settingname}/0{$filename}";
+
+    var_dump($fullpath);
+    die();
+
+    // This location matches the searched for location in theme_config::resolve_image_location.
+    $pathname = $CFG->dataroot . '/pix_plugins/theme/moovechild/' . $settingname . '.' . $extension;
+
+    // This pattern matches any previous files with maybe different file extensions.
+    $pathpattern = $CFG->dataroot . '/pix_plugins/theme/moovechild/' . $settingname . '.*';
+
+    // Make sure this dir exists.
+    @mkdir($CFG->dataroot . '/pix_plugins/theme/moovechild/', $CFG->directorypermissions, true);
+
+    // Delete any existing files for this setting.
+    foreach (glob($pathpattern) as $filename) {
+        @unlink($filename);
     }
-    $parent->add('Set course color 2', '/local/message/course_color.php', navigation_node::TYPE_SETTING);
+
+    // Get an instance of the moodle file storage.
+    $fs = get_file_storage();
+    // This is an efficient way to get a file if we know the exact path.
+    if ($file = $fs->get_file_by_hash(sha1($fullpath))) {
+        // We got the stored file - copy it to dataroot.
+        $file->copy_content_to($pathname);
+    }
+
+    // Reset theme caches.
+    theme_reset_all_caches();
+}
+
+/**
+ * Serve the files from the MYPLUGIN file areas
+ *
+ * @param stdClass $course the course object
+ * @param stdClass $cm the course module object
+ * @param stdClass $context the context
+ * @param string $filearea the name of the file area
+ * @param array $args extra arguments (itemid, path)
+ * @param bool $forcedownload whether or not force download
+ * @param array $options additional options affecting the file serving
+ * @return bool false if the file not found, just send the file otherwise and do not return anything
+ */
+function theme_moovechild_pluginfile($course, $cm, $context, $filearea, $args, $forcedownload, array $options=array()) {
+    // Check the contextlevel is as expected - if your plugin is a block, this becomes CONTEXT_BLOCK, etc.
+    if ($context->contextlevel != CONTEXT_MODULE) {
+        return false; 
+    }
+ 
+    // Make sure the filearea is one of those used by the plugin.
+    if ($filearea !== 'expectedfilearea' && $filearea !== 'anotherexpectedfilearea') {
+        return false;
+    }
+ 
+    // Make sure the user is logged in and has access to the module (plugins that are not course modules should leave out the 'cm' part).
+    require_login($course, true, $cm);
+ 
+    // Check the relevant capabilities - these may vary depending on the filearea being accessed.
+    if (!has_capability('mod/MYPLUGIN:view', $context)) {
+        return false;
+    }
+ 
+    // Leave this line out if you set the itemid to null in make_pluginfile_url (set $itemid to 0 instead).
+    $itemid = array_shift($args); // The first item in the $args array.
+ 
+    // Use the itemid to retrieve any relevant data records and perform any security checks to see if the
+    // user really does have access to the file in question.
+ 
+    // Extract the filename / filepath from the $args array.
+    $filename = array_pop($args); // The last item in the $args array.
+    if (!$args) {
+        $filepath = '/'; // $args is empty => the path is '/'
+    } else {
+        $filepath = '/'.implode('/', $args).'/'; // $args contains elements of the filepath
+    }
+ 
+    // Retrieve the file from the Files API.
+    $fs = get_file_storage();
+    $file = $fs->get_file($context->id, 'mod_MYPLUGIN', $filearea, $itemid, $filepath, $filename);
+    if (!$file) {
+        return false; // The file does not exist.
+    }
+ 
+    // We can now send the file back to the browser - in this case with a cache lifetime of 1 day and no filtering. 
+    send_stored_file($file, 86400, 0, $forcedownload, $options);
 }

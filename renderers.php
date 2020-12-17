@@ -180,7 +180,5 @@ class theme_moovechild_core_renderer extends \theme_boost\output\core_renderer {
         $header->watermark = $courseSVG;
         return $this->render_from_template('core/full_header', $header);
     }
-
 }
-
 
